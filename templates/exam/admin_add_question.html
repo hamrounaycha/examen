@@ -1,0 +1,163 @@
+{% extends 'exam/adminbase.html' %}
+{% load widget_tweaks %}
+{% block content %}
+  <h2 style="text-align:center;">Add Question</h2>
+  <form method="POST" action="{% url 'admin-add-question' %}" autocomplete="off" style="margin:100px;margin-top: 0px;" id="questionForm" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="form-group">
+      <label for="{{ questionForm.course.id_for_label }}">Course</label>
+      {{ questionForm.course|add_class:'form-control form-control-sm arrondi-0' }}
+      <br>
+      <div class="form-group">
+        <label for="{{ questionForm.photo.id_for_label }}">Photo</label>
+        {{ questionForm.photo|add_class:'form-control-file' }}
+        <br>
+
+      <label for="{{ questionForm.question_text.id_for_label }}">Question</label>
+<br>
+{{ questionForm.question_text|add_class:'form-control form-control-sm arrondi-0' }}
+<br> <br>
+
+
+
+
+      <!-- Options Container -->
+      <label for="options-container">Options</label>
+      <div id="options-container">
+        {{ optionFormset.management_form }}
+        {% for form in optionFormset %}
+          {{ form.id }}
+         <!-- {{ form.value|add_class:'form-control form-control-sm arrondi-0' }}-->
+         
+        {% endfor %}
+      </div>
+     
+
+      <button type="button" id="addOption" class="btn btn-secondary">Add Option</button>
+      <br>
+      <br>
+      <label for="correct_answer">Correct Answer</label>
+      <select name="correct_answer" class="form-control form-control-sm arrondi-0" required>
+        {% for form in optionFormset %}
+          <option value="{{ form.value }}"> 
+            Option {{ forloop.counter }} </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <input type="hidden" name="courseID" value="{{ questionForm.course.value }}">
+
+    <button type="submit" class="btn btn-success" style="border-radius:0px;">Submit Question</button>
+  </form>
+  {% if question_errors %}
+  <div class="alert alert-danger">
+      {{ question_errors|escape }}
+  </div>
+{% endif %}
+
+{% if option_errors %}
+  <div class="alert alert-danger">
+      {% for error in option_errors %}
+          {{ error|escape }}<br>
+      {% endfor %}
+  </div>
+{% endif %}
+
+<!-- Add this script at the end of your HTML body -->
+
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<script>
+$(document).ready(function () {
+    $('#addOption').click(function () {
+      var optionsContainer = $('#options-container');
+      var totalOptions = optionsContainer.find('.option-group').length;
+
+      // Use a container with margin-bottom for spacing
+      var newOption = '<div class="option-group" style="margin-bottom: 10px;">' +
+                      '<label for="options-' + totalOptions + '-value">Option ' + (totalOptions + 1) + '</label>' +
+                      '<input type="text" id="options-' + totalOptions + '-value" name="options-' + totalOptions + '-value" maxlength="200" ' +
+                      'class="form-control form-control-sm arrondi-0" placeholder="Enter Option ' + (totalOptions + 1) + '">' +
+                      '</div>';
+
+      optionsContainer.append(newOption);
+
+      // Update the Correct Answer dropdown with the new option
+      var correctAnswerDropdown = $('select[name="correct_answer"]');
+      var optionValue = 'Option ' + (totalOptions + 1);
+      var newCorrectOption = '<option value="' + optionValue + '"> ' + optionValue + '</option>';
+      correctAnswerDropdown.append(newCorrectOption);
+
+      // Update formset management form fields
+      updateFormsetManagementForm($('#options-container'));
+    });
+
+    $('#questionForm').submit(function (event) {
+        // Prevent the default form submission
+        event.preventDefault();
+
+        // Serialize the form data
+        var formData = new FormData($('#questionForm')[0]);
+
+        // Use AJAX to submit the form data
+        $.ajax({
+            type: 'POST',
+            url: '{% url "admin-add-question" %}',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (response) {
+                // Clear options container
+                $('#options-container').empty();
+
+                // Reset form fields
+                $('#questionForm')[0].reset();
+
+                // Reset formset management form fields
+                updateFormsetManagementForm($('#options-container'));
+
+                if (response.success) {
+                    // Question saved successfully
+
+                    // Clear options container
+                    $('#options-container').empty();
+
+                    // Reset form fields
+                    $('#questionForm')[0].reset();
+
+                    // Reset formset management form fields
+                    updateFormsetManagementForm($('#options-container'));
+                    window.location.reload();
+
+
+                    // Display success messages to the user (customize as needed)
+                    // ...
+                } else {
+                    // Display form errors
+                    console.log(response.errors);
+
+                    // Display error messages to the user (customize as needed)
+                    // ...
+                }
+            }
+        });
+    });
+
+  });
+
+  function updateFormsetManagementForm(optionsContainer) {
+    var totalForms = optionsContainer.find('.option-group').length;
+    var managementForm = optionsContainer.find('input[name$="TOTAL_FORMS"]');
+    var initialForms = optionsContainer.find('input[name$="INITIAL_FORMS"]');
+
+    managementForm.val(totalForms);
+    initialForms.val(totalForms);  // Set INITIAL_FORMS to the current number of forms
+  }
+</script>
+
+<br><br><br>
+
+
+
+
+
+{% endblock content %}
